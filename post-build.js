@@ -17,9 +17,9 @@ copyFileSync(
 
 // Copy logo files to dist directory
 console.log('Copying logo files to dist directory...');
-const logoSizes = [16, 24, 32, 48, 64, 96, 128, 256, 512];
+const logoSizes = [24, 96, 256, 512];
 logoSizes.forEach(size => {
-  const filename = `ethfox${size}.png`;
+  const filename = `ethfox2.${size}.png`;
   copyFileSync(
     resolve(`./public/${filename}`),
     resolve(`./dist/${filename}`)

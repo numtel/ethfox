@@ -553,15 +553,32 @@ async function storeApprovalRequest(request) {
     await browser.storage.local.set({ pendingApprovals: approvals });
     
     // Create a popup to request user approval
-    await browser.windows.create({
-      url: `/approval.html?id=${request.id}`,
-      type: 'popup',
-      width: 400,
-      height: 600,
-      focused: true
-    });
+    try {
+      // Check if we're on Firefox for Android (browser.windows is undefined)
+      if (typeof browser.windows === 'undefined') {
+        // For Firefox Android, open as a tab instead
+        await browser.tabs.create({
+          url: `/approval.html?id=${request.id}`
+        });
+      } else {
+        // For desktop Firefox, open as a popup window
+        await browser.windows.create({
+          url: `/approval.html?id=${request.id}`,
+          type: 'popup',
+          width: 400,
+          height: 600,
+          focused: true
+        });
+      }
+    } catch (windowError) {
+      console.error('Error creating approval window/tab:', windowError);
+      // Fallback to opening as a tab if window creation fails
+      await browser.tabs.create({
+        url: `/approval.html?id=${request.id}`
+      });
+    }
     
-    console.log('Approval request stored and popup created:', request.id);
+    console.log('Approval request stored and popup/tab created:', request.id);
   } catch (error) {
     console.error('Error storing approval request:', error);
     throw error;
