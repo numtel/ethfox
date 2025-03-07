@@ -7,6 +7,14 @@ A Firefox extension that implements an Ethereum wallet, providing the `window.et
 > [!WARNING]
 > **This wallet is for TESTNET PURPOSES ONLY!** It is not secure for use with real funds on mainnet. The private key is stored in the browser's local storage without strong encryption. Use only for development and testing.
 
+## Screenshots
+
+<div align="center">
+  <img src="screenshots/popup.png" alt="Wallet Popup" width="250" />
+  <img src="screenshots/tx.png" alt="Transaction Approval" width="250" />
+  <img src="screenshots/sig.png" alt="Message Signing" width="250" />
+</div>
+
 ## Features
 
 - Provides Ethereum wallet functionality through the `window.ethereum` API
