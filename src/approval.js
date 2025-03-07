@@ -178,6 +178,64 @@ document.addEventListener('DOMContentLoaded', async () => {
         Malicious sites can use signed messages to steal your funds or compromise your accounts.
       `;
     }
+    // For EIP-712 typed data signing requests
+    else if (request.type === 'typedData') {
+      // Update page title
+      document.title = 'Sign Typed Data';
+      document.querySelector('h1').textContent = 'Sign Typed Data';
+      
+      // Set badge to show the domain name
+      networkBadgeEl.textContent = request.formattedData.domainName;
+      networkBadgeEl.style.display = 'inline-block';
+      
+      // Hide gas row as it's not relevant for signing
+      document.getElementById('gas-row').style.display = 'none';
+      
+      // Update the header
+      document.querySelector('.card-header').textContent = 'Typed Data Details';
+      
+      // Show the signer address
+      fromAddressEl.textContent = request.account;
+      
+      // Handle "to" address row
+      const toRow = document.getElementById('to-address').parentNode;
+      toRow.style.display = 'flex';
+      document.querySelector('#to-address').parentNode.querySelector('.info-label').textContent = 'Domain';
+      document.getElementById('to-address').textContent = request.formattedData.domainSummary.replace(/\n/g, ' • ');
+      
+      // Update value row to show the primary type
+      document.querySelector('#value-row .info-label').textContent = `Data Type (${request.formattedData.primaryType}):`;
+      txValueEl.textContent = request.formattedData.messageData;
+      txValueEl.style.fontWeight = 'normal';
+      txValueEl.style.color = '#333';
+      txValueEl.style.maxHeight = '120px';
+      txValueEl.style.overflow = 'auto';
+      txValueEl.style.fontFamily = 'monospace';
+      txValueEl.style.fontSize = '12px';
+      txValueEl.style.padding = '8px';
+      txValueEl.style.backgroundColor = '#f5f5f5';
+      txValueEl.style.borderRadius = '4px';
+      
+      // Show the full typed data JSON in the data card
+      dataCardEl.style.display = 'block';
+      document.querySelector('#data-card .card-header').textContent = 'Full Typed Data';
+      txDataEl.textContent = request.formattedData.fullData;
+      txDataEl.style.maxHeight = '150px';
+      
+      // Update the warning text for signing structured data
+      document.querySelector('.tx-warning').innerHTML = `
+        <strong>Warning:</strong> Signing this data can authorize transactions or changes to your account.
+        Only sign data from sites you trust. Structured data signing is often used for token approvals and permits.
+      `;
+      
+      // If this is a permit, add a more specific warning
+      if (request.formattedData.primaryType === 'Permit') {
+        document.querySelector('.tx-warning').innerHTML += `
+          <br><br><strong>ERC20 Permit:</strong> You are signing a permission that will allow the spender 
+          to transfer tokens from your account without requiring a separate transaction.
+        `;
+      }
+    }
   }
 
   // Handle transaction approval

@@ -26,6 +26,7 @@ A Firefox extension that implements an Ethereum wallet, providing the `window.et
   - `eth_chainId`
   - `eth_sendTransaction`
   - `personal_sign`
+  - `eth_signTypedData` and `eth_signTypedData_v4` (EIP-712)
   - Chain switching with `wallet_switchEthereumChain`
   
 ## Extension UI Features

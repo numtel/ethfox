@@ -121,6 +121,31 @@
 
     <div class="card mt-4">
       <div class="card-header">
+        Sign EIP-712 Typed Data (Permit)
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-3">
+          This simulates an ERC-20 permit function which allows token approvals without requiring a transaction.
+        </p>
+        <div class="mb-3">
+          <label for="spender-address" class="form-label">Spender Address</label>
+          <input type="text" class="form-control" id="spender-address" placeholder="0x..." value="0x0000000000000000000000000000000000000001">
+        </div>
+        <div class="mb-3">
+          <label for="token-amount" class="form-label">Amount</label>
+          <input type="text" class="form-control" id="token-amount" placeholder="1.0" value="10">
+        </div>
+        <div class="mb-3">
+          <label for="deadline" class="form-label">Deadline (minutes from now)</label>
+          <input type="number" class="form-control" id="deadline" placeholder="60" value="60">
+        </div>
+        <button id="sign-typed-data" class="btn btn-warning">Sign Permit</button>
+        <div id="typed-data-result" class="mt-2"></div>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header">
         Switch Network
       </div>
       <div class="card-body">
@@ -689,12 +714,90 @@
         }
       };
 
+      // Sign typed data (EIP-712)
+      const signTypedData = async () => {
+        const spenderAddress = document.getElementById('spender-address').value.trim();
+        const tokenAmount = document.getElementById('token-amount').value.trim();
+        const deadlineMinutes = document.getElementById('deadline').value.trim() || "60";
+        const typedDataResultEl = document.getElementById('typed-data-result');
+        
+        if (!currentAccount) {
+          alert('Please connect your wallet first');
+          return;
+        }
+        
+        if (!spenderAddress.startsWith('0x') || spenderAddress.length !== 42) {
+          alert('Please enter a valid spender address');
+          return;
+        }
+        
+        // Calculate deadline timestamp (minutes from now)
+        const deadlineTimestamp = Math.floor(Date.now() / 1000) + (parseInt(deadlineMinutes) * 60);
+        
+        try {
+          typedDataResultEl.innerHTML = '<div class="loading"></div> Signing typed data...';
+          document.getElementById('sign-typed-data').disabled = true;
+          
+          // Create the EIP-712 typed data object for a permit
+          const typedData = {
+            types: {
+              EIP712Domain: [
+                { name: 'name', type: 'string' },
+                { name: 'version', type: 'string' },
+                { name: 'chainId', type: 'uint256' },
+                { name: 'verifyingContract', type: 'address' }
+              ],
+              Permit: [
+                { name: 'owner', type: 'address' },
+                { name: 'spender', type: 'address' },
+                { name: 'value', type: 'uint256' },
+                { name: 'nonce', type: 'uint256' },
+                { name: 'deadline', type: 'uint256' }
+              ]
+            },
+            primaryType: 'Permit',
+            domain: {
+              name: 'Example Token',
+              version: '1',
+              chainId: parseInt(currentChainId, 16),
+              verifyingContract: '0x0000000000000000000000000000000000000000'
+            },
+            message: {
+              owner: currentAccount,
+              spender: spenderAddress,
+              value: tokenAmount,
+              nonce: 0,
+              deadline: deadlineTimestamp
+            }
+          };
+          
+          // Sign the typed data
+          const signature = await window.ethereum.request({
+            method: 'eth_signTypedData_v4',
+            params: [currentAccount, JSON.stringify(typedData)]
+          });
+          
+          typedDataResultEl.innerHTML = `
+            <div class="alert alert-success">
+              <strong>Successfully signed!</strong><br/>
+              <small>Signature: ${signature}</small>
+            </div>
+          `;
+        } catch (error) {
+          console.error('Error signing typed data:', error);
+          typedDataResultEl.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        } finally {
+          document.getElementById('sign-typed-data').disabled = false;
+        }
+      };
+
       // Event Listeners
       connectWalletBtn.addEventListener('click', connectWallet);
       addTokenBtn.addEventListener('click', addToken);
       sendTokenBtn.addEventListener('click', sendToken);
       signMessageBtn.addEventListener('click', signMessage);
       switchNetworkBtn.addEventListener('click', switchNetwork);
+      document.getElementById('sign-typed-data').addEventListener('click', signTypedData);
 
       // Initialize
       checkWalletConnection();

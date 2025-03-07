@@ -435,6 +435,85 @@ async function handleRequest(method, params) {
           throw new Error(`Message signing failed: ${error.message}`);
         }
         
+      case 'eth_signTypedData':
+      case 'eth_signTypedData_v4':
+        try {
+          // Get the typed data parameters
+          const address = params[0];
+          const typedData = params[1];
+          let parsedData;
+          
+          try {
+            // Handle case where data might be a string
+            if (typeof typedData === 'string') {
+              parsedData = JSON.parse(typedData);
+            } else {
+              parsedData = typedData;
+            }
+          } catch (parseError) {
+            console.error('Error parsing typed data:', parseError);
+            throw new Error('Invalid typed data format');
+          }
+          
+          // Validate that the signer matches our account
+          if (address.toLowerCase() !== account.address.toLowerCase()) {
+            throw new Error('Signer address does not match active account');
+          }
+          
+          const requestId = params[2]; // Optional request ID
+          const skipApproval = params[3]; // Optional flag to skip approval
+          
+          // Format the data for display in the approval UI
+          const formattedData = formatTypedDataForDisplay(parsedData);
+          
+          // If skipApproval is not true, go through the normal approval flow
+          if (!skipApproval) {
+            // Create and store an approval request
+            const approvalRequest = {
+              id: requestId || `typed-${Date.now()}`,
+              type: 'typedData',
+              address,
+              typedData: parsedData,
+              formattedData,
+              account: account.address,
+              metadata: {
+                timestamp: Date.now(),
+                method: method // Store which version of the method was called
+              }
+            };
+            
+            // Request user approval
+            await storeApprovalRequest(approvalRequest);
+            
+            // Wait for user approval
+            const approvalResult = await waitForApproval(approvalRequest.id);
+            
+            if (!approvalResult.approved) {
+              throw new Error('Signature request rejected by user');
+            }
+            
+            // Clean up the approval request after approval
+            await removeApprovalRequest(approvalRequest.id);
+          }
+          
+          // Get the private key for signing
+          const { privateKey } = await browser.storage.local.get('privateKey');
+          if (!privateKey) {
+            throw new Error('Private key not found');
+          }
+          
+          // Create a local account from the private key
+          const signingAccount = privateKeyToAccount(privateKey);
+          
+          // Sign the typed data using viem's signTypedData
+          const signature = await signingAccount.signTypedData(parsedData);
+          
+          return signature;
+        } catch (error) {
+          console.error('Error signing typed data:', error);
+          throw new Error(`Typed data signing failed: ${error.message}`);
+        }
+        
       case 'wallet_switchEthereumChain':
         const newChainId = params[0].chainId;
         await setCurrentChain(newChainId);
@@ -708,6 +787,70 @@ function convertBigIntToString(obj) {
 // Safely stringify objects with BigInt values
 function safeStringify(obj, replacer = null, space = 2) {
   return JSON.stringify(convertBigIntToString(obj), replacer, space);
+}
+
+// Helper function to format typed data for display in the approval UI
+function formatTypedDataForDisplay(typedData) {
+  // Deep copy to avoid modifying the original
+  const formattedData = JSON.parse(JSON.stringify(typedData));
+  
+  try {
+    // Extract primary details for easier display
+    const primaryType = formattedData.primaryType;
+    const domain = formattedData.domain;
+    
+    // Format domain into a readable summary
+    let domainSummary = '';
+    if (domain.name) domainSummary += `Name: ${domain.name}\n`;
+    if (domain.version) domainSummary += `Version: ${domain.version}\n`;
+    if (domain.chainId) domainSummary += `Chain ID: ${domain.chainId}\n`;
+    if (domain.verifyingContract) domainSummary += `Contract: ${domain.verifyingContract}\n`;
+    
+    // Format the message data based on primary type
+    const messageData = formattedData.message;
+    const primaryTypeData = [];
+    
+    // Format permit-specific data in a readable way if it's a permit
+    if (primaryType === 'Permit') {
+      if (messageData.owner) primaryTypeData.push(`Owner: ${messageData.owner}`);
+      if (messageData.spender) primaryTypeData.push(`Spender: ${messageData.spender}`);
+      if (messageData.value) primaryTypeData.push(`Value: ${messageData.value}`);
+      if (messageData.nonce) primaryTypeData.push(`Nonce: ${messageData.nonce}`);
+      if (messageData.deadline) {
+        const deadline = Number(messageData.deadline);
+        const date = new Date(deadline * 1000); // Convert from unix timestamp
+        primaryTypeData.push(`Deadline: ${date.toLocaleString()} (${messageData.deadline})`);
+      }
+    } else {
+      // For non-permit types, format all fields
+      for (const key in messageData) {
+        let value = messageData[key];
+        // Format arrays or objects
+        if (typeof value === 'object' && value !== null) {
+          value = JSON.stringify(value);
+        }
+        primaryTypeData.push(`${key}: ${value}`);
+      }
+    }
+    
+    return {
+      domainName: domain.name || 'Unknown Domain',
+      domainSummary,
+      primaryType,
+      messageData: primaryTypeData.join('\n'),
+      fullData: safeStringify(typedData, null, 2)
+    };
+  } catch (error) {
+    console.error('Error formatting typed data:', error);
+    // Return a simpler format if there's an error
+    return {
+      domainName: 'Error formatting data',
+      domainSummary: '',
+      primaryType: typedData.primaryType || 'Unknown',
+      messageData: 'Error parsing message data',
+      fullData: safeStringify(typedData, null, 2)
+    };
+  }
 }
 
 // Create a utility to emit events to all tabs
