@@ -1,6 +1,11 @@
 # Ethereum Wallet Extension for Firefox
 
+<img src="public/ethfox2.96.png" alt="EthFox Logo" width="96" height="96">
+
 A Firefox extension that implements an Ethereum wallet, providing the `window.ethereum` object to web applications. Compatible with Firefox for Android.
+
+> [!WARNING]
+> **This wallet is for TESTNET PURPOSES ONLY!** It is not secure for use with real funds on mainnet. The private key is stored in the browser's local storage without strong encryption. Use only for development and testing.
 
 ## Features
 

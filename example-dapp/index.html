@@ -527,8 +527,10 @@
           signatureResultEl.innerHTML = '<div class="loading"></div> Signing message...';
           signMessageBtn.disabled = true;
           
-          // Convert message to hex
-          const messageHex = '0x' + Buffer.from(message).toString('hex');
+          // Convert message to hex using TextEncoder (browser-compatible)
+          const encoder = new TextEncoder();
+          const messageUint8 = encoder.encode(message);
+          const messageHex = '0x' + Array.from(messageUint8).map(b => b.toString(16).padStart(2, '0')).join('');
           
           // Sign the message
           const signature = await window.ethereum.request({
