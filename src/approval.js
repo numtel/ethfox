@@ -1,4 +1,5 @@
 // Transaction approval script
+import './buffer-polyfill.js'; // Import buffer polyfill
 import walletProvider from './wallet-provider.js';
 
 document.addEventListener('DOMContentLoaded', async () => {

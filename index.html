@@ -36,6 +36,9 @@
       font-weight: 600;
       font-size: 14px;
       border-bottom: 1px solid #e9ecef;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .card-body {
       padding: 12px;
@@ -73,6 +76,13 @@
     }
     .btn-warning:hover {
       background-color: #f2b600;
+    }
+    .btn-danger {
+      background-color: #ea4335;
+      color: white;
+    }
+    .btn-danger:hover {
+      background-color: #d33828;
     }
     .form-control {
       width: 100%;
@@ -187,183 +197,435 @@
       font-size: 12px;
       display: none;
     }
+    .account-item {
+      padding: 10px;
+      border-bottom: 1px solid #e9ecef;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .account-item:hover {
+      background-color: #f8f9fa;
+    }
+    .account-item.active {
+      background-color: #e8f0fe;
+    }
+    .account-item:last-child {
+      border-bottom: none;
+    }
+    .account-name {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+    .account-address {
+      font-size: 11px;
+      color: #5f6368;
+      margin-bottom: 2px;
+    }
+    .account-type {
+      display: inline-block;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+    .account-type.seed {
+      background-color: #e6f4ea;
+      color: #34a853;
+    }
+    .account-type.imported {
+      background-color: #fef7e0;
+      color: #f29900;
+    }
+    /* Password dialog styling */
+    .password-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .password-dialog {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      width: 300px;
+      padding: 16px;
+    }
+    .password-dialog h3 {
+      margin-top: 0;
+      font-size: 16px;
+    }
+    .password-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    /* Setup container styling */
+    #setup-container {
+      padding: 16px;
+      display: none;
+    }
+    .setup-card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .setup-title {
+      font-size: 18px;
+      margin: 0 0 16px 0;
+      color: #1a73e8;
+      text-align: center;
+    }
+    .setup-subtitle {
+      font-size: 14px;
+      color: #5f6368;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .setup-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .center-button {
+      display: block;
+      margin: 0 auto;
+    }
+    .seed-phrase-display {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 12px;
+      margin: 12px 0;
+      word-wrap: break-word;
+      font-family: monospace;
+      line-height: 1.5;
+    }
+    .seed-phrase-warning {
+      font-size: 12px;
+      color: #ea4335;
+      margin-top: 8px;
+      text-align: center;
+    }
+    /* Wallet status badge */
+    .status-badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+    .status-badge.locked {
+      background-color: #ffefc1;
+      color: #e37400;
+    }
+    .status-badge.unlocked {
+      background-color: #e6f4ea;
+      color: #34a853;
+    }
   </style>
 </head>
 <body>
-  <h1>Ethereum Wallet</h1>
+  <!-- Wallet Setup Container -->
+  <div id="setup-container">
+    <div class="setup-card">
+      <h2 class="setup-title">Welcome to ETH Fox Wallet</h2>
+      <p class="setup-subtitle">Set up your wallet to start using the Ethereum blockchain</p>
+      
+      <!-- Password Entry for Setup -->
+      <div id="setup-password-container">
+        <div class="mb-3">
+          <label class="form-label">Create Password</label>
+          <input type="password" id="setup-password-input" class="form-control" placeholder="Enter password" required>
+          <small style="font-size: 11px; color: #5f6368;">This password will encrypt your wallet data</small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Confirm Password</label>
+          <input type="password" id="setup-confirm-password-input" class="form-control" placeholder="Confirm password" required>
+        </div>
+        <div class="setup-buttons">
+          <button id="create-wallet" class="btn btn-success" style="flex: 1;">Create New Wallet</button>
+          <button id="restore-wallet" class="btn" style="flex: 1;">Restore Wallet</button>
+        </div>
+      </div>
+      
+      <!-- Seed Phrase Display -->
+      <div id="setup-mnemonic-container" style="display: none;">
+        <h3 style="font-size: 16px; margin-top: 0;">Your Recovery Phrase</h3>
+        <p style="font-size: 12px; color: #5f6368;">Write down these words in order and keep them safe. This is the only way to recover your wallet if you lose access.</p>
+        
+        <div id="setup-mnemonic-display" class="seed-phrase-display"></div>
+        
+        <div class="seed-phrase-warning">
+          Never share these words with anyone. Anyone with this phrase can access your funds.
+        </div>
+        
+        <button id="setup-confirm-phrase" class="btn btn-success center-button mt-2">I've Written It Down</button>
+      </div>
+      
+      <!-- Import Seed Phrase -->
+      <div id="setup-import-phrase-container" style="display: none;">
+        <h3 style="font-size: 16px; margin-top: 0;">Restore from Seed Phrase</h3>
+        <p style="font-size: 12px; color: #5f6368;">Enter your 12 or 24-word recovery phrase to restore your wallet.</p>
+        
+        <div class="mb-3">
+          <textarea id="setup-import-phrase-input" class="form-control" rows="3" placeholder="Enter your recovery phrase, words separated by spaces"></textarea>
+        </div>
+        
+        <button id="setup-import-phrase" class="btn btn-success center-button">Restore Wallet</button>
+      </div>
+      
+      <div id="setup-status" style="display: none; margin-top: 12px; text-align: center; font-size: 13px;"></div>
+    </div>
+  </div>
+
+  <!-- Main Wallet UI -->
+  <main>
+    <h1>Ethereum Wallet</h1>
+    
+    <div class="card">
+      <div class="card-header">
+        <span>Account</span>
+        <button id="lock-wallet" class="btn btn-sm">Unlock Wallet</button>
+      </div>
+      <div class="card-body">
+        <div id="wallet-status">Loading wallet...</div>
+        <div style="display: flex; align-items: center; gap: 5px;" class="mt-2">
+          <div id="account-address" class="account-info" style="color: #1a73e8; flex-grow: 1;"></div>
+          <button id="copy-address" class="btn btn-sm" style="padding: 2px 6px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="mt-2">
+          <span id="chain-info" class="badge badge-primary"></span>
+        </div>
+      </div>
+    </div>
   
-  <div class="card">
-    <div class="card-header">
-      Account
+    <div class="tabs">
+      <div class="tab active" data-tab="assets">Assets</div>
+      <div class="tab" data-tab="send">Send</div>
+      <div class="tab" data-tab="accounts">Accounts</div>
+      <div class="tab" data-tab="settings">Settings</div>
     </div>
-    <div class="card-body">
-      <div id="wallet-status">Loading wallet...</div>
-      <div id="account-address" class="account-info mt-2" style="color: #1a73e8; text-decoration: underline;"></div>
-      <div class="mt-2">
-        <span id="chain-info" class="badge badge-primary"></span>
-      </div>
-    </div>
-  </div>
-
-  <div class="tabs">
-    <div class="tab active" data-tab="assets">Assets</div>
-    <div class="tab" data-tab="send">Send</div>
-    <div class="tab" data-tab="settings">Settings</div>
-  </div>
-
-  <div class="tab-content">
-    <!-- Assets Tab -->
-    <div id="assets-tab" class="active">
-      <div class="card">
-        <div class="card-header">
-          ETH Balance
-        </div>
-        <div class="card-body">
-          <div id="eth-balance">Loading...</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          Tokens
-        </div>
-        <div class="card-body">
-          <div id="token-balances">No tokens added yet</div>
-          <div class="mt-2">
-            <div class="mb-2">
-              <input type="text" id="token-address" class="form-control" placeholder="Token Contract Address">
-            </div>
-            <button id="add-token" class="btn btn-sm">Add Token</button>
+  
+    <div class="tab-content">
+      <!-- Assets Tab -->
+      <div id="assets-tab" class="active">
+        <div class="card">
+          <div class="card-header">
+            ETH Balance
+          </div>
+          <div class="card-body">
+            <div id="eth-balance">Loading...</div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Send Tab -->
-    <div id="send-tab">
-      <div class="card">
-        <div class="card-header">
-          Send Token
-        </div>
-        <div class="card-body">
-          <div class="mb-2">
-            <label for="token-select" class="form-label">Token</label>
-            <select class="form-select" id="token-select">
-              <option value="eth" selected>ETH</option>
-              <!-- Token options will be added here -->
-            </select>
+  
+        <div class="card">
+          <div class="card-header">
+            Tokens
           </div>
-          <div class="mb-2">
-            <label for="recipient" class="form-label">Recipient</label>
-            <input type="text" class="form-control" id="recipient" placeholder="0x...">
-          </div>
-          <div class="mb-3">
-            <label for="amount" class="form-label">Amount</label>
-            <input type="text" class="form-control" id="amount" placeholder="0.0">
-          </div>
-          <button id="send-token" class="btn btn-success">Send</button>
-          <div id="tx-status" class="mt-2" style="font-size: 12px;"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          Sign Message
-        </div>
-        <div class="card-body">
-          <div class="mb-2">
-            <textarea class="form-control" id="message" rows="2" placeholder="Message to sign"></textarea>
-          </div>
-          <button id="sign-message" class="btn">Sign</button>
-          <div id="signature-result" class="mt-2" style="font-size: 12px; word-break: break-all;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Settings Tab -->
-    <div id="settings-tab">
-      <div class="card">
-        <div class="card-header">
-          Network
-        </div>
-        <div class="card-body">
-          <div class="mb-2">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <select class="form-select" id="network-select" style="flex-grow: 1;">
-                <option value="0x1">Ethereum Mainnet</option>
-                <option value="0xaa36a7" selected>Sepolia Testnet</option>
-                <!-- Custom networks will be added here -->
-              </select>
-              <button id="remove-network" class="btn btn-sm" style="background-color: #ea4335;">Remove</button>
-            </div>
-          </div>
-          <button id="switch-network" class="btn btn-warning">Switch Network</button>
-          <div id="network-status" class="mt-2" style="font-size: 12px;"></div>
-          
-          <hr style="margin: 12px 0; border: 0; border-top: 1px solid #eee;">
-          
-          <div class="mb-2">
-            <h4 style="font-size: 14px; margin: 0 0 8px 0;">Add Custom Network</h4>
-            <div class="mb-2">
-              <label for="chain-name" class="form-label">Network Name</label>
-              <input type="text" class="form-control" id="chain-name" placeholder="My Network">
-            </div>
-            <div class="mb-2">
-              <label for="chain-id" class="form-label">Chain ID (hex)</label>
-              <input type="text" class="form-control" id="chain-id" placeholder="0x89">
-            </div>
-            <div class="mb-2">
-              <label for="rpc-url" class="form-label">RPC URL</label>
-              <input type="text" class="form-control" id="rpc-url" placeholder="https://rpc.example.com">
-            </div>
-            <div class="mb-2">
-              <label for="block-explorer" class="form-label">Block Explorer (optional)</label>
-              <input type="text" class="form-control" id="block-explorer" placeholder="https://explorer.example.com">
-            </div>
-            <div class="mb-2">
-              <label for="currency-symbol" class="form-label">Currency Symbol</label>
-              <input type="text" class="form-control" id="currency-symbol" placeholder="ETH">
-            </div>
-            <div class="mb-2">
-              <label for="currency-decimals" class="form-label">Currency Decimals</label>
-              <input type="number" class="form-control" id="currency-decimals" placeholder="18" value="18">
-            </div>
-            <button id="add-network" class="btn btn-success">Add Network</button>
-            <div id="add-network-status" class="mt-2" style="font-size: 12px;"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          Account
-        </div>
-        <div class="card-body">
-          <div class="mb-3">
-            <button id="copy-address" class="btn btn-sm">Copy Address</button>
-            <button id="export-private-key" class="btn btn-sm btn-warning">Export Private Key</button>
-            <div id="private-key-display" class="mt-2" style="display: none; font-size: 12px; word-break: break-all;"></div>
-          </div>
-          
-          <div class="mb-3">
-            <label class="form-label">Private Key Management</label>
-            <div class="mb-2">
-              <button id="generate-new-key" class="btn btn-sm btn-success">Generate New Key</button>
-              <span id="generate-key-status" class="mt-1" style="display: none; font-size: 12px;"></span>
-            </div>
-            <div>
+          <div class="card-body">
+            <div id="token-balances">No tokens added yet</div>
+            <div class="mt-2">
               <div class="mb-2">
-                <input type="text" id="import-private-key" class="form-control" placeholder="Enter private key to import">
+                <input type="text" id="token-address" class="form-control" placeholder="Token Contract Address">
+              </div>
+              <button id="add-token" class="btn btn-sm">Add Token</button>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Send Tab -->
+      <div id="send-tab">
+        <div class="card">
+          <div class="card-header">
+            Send Token
+          </div>
+          <div class="card-body">
+            <div class="mb-2">
+              <label for="token-select" class="form-label">Token</label>
+              <select class="form-select" id="token-select">
+                <option value="eth" selected>ETH</option>
+                <!-- Token options will be added here -->
+              </select>
+            </div>
+            <div class="mb-2">
+              <label for="recipient" class="form-label">Recipient</label>
+              <input type="text" class="form-control" id="recipient" placeholder="0x...">
+            </div>
+            <div class="mb-3">
+              <label for="amount" class="form-label">Amount</label>
+              <input type="text" class="form-control" id="amount" placeholder="0.0">
+            </div>
+            <button id="send-token" class="btn btn-success">Send</button>
+            <div id="tx-status" class="mt-2" style="font-size: 12px;"></div>
+          </div>
+        </div>
+  
+        <div class="card">
+          <div class="card-header">
+            Sign Message
+          </div>
+          <div class="card-body">
+            <div class="mb-2">
+              <textarea class="form-control" id="message" rows="2" placeholder="Message to sign"></textarea>
+            </div>
+            <button id="sign-message" class="btn">Sign</button>
+            <div id="signature-result" class="mt-2" style="font-size: 12px; word-break: break-all;"></div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Accounts Tab (New) -->
+      <div id="accounts-tab">
+        <div class="card">
+          <div class="card-header">
+            My Accounts
+          </div>
+          <div class="card-body" id="accounts-container">
+            <div id="accounts-list">
+              <!-- Account list items will be added here -->
+              <div class="account-item active">
+                <div class="account-name">Loading accounts...</div>
+              </div>
+            </div>
+            <div class="mt-2">
+              <button id="add-account" class="btn btn-sm btn-success">Add Account</button>
+              <button id="export-wallet" class="btn btn-sm">Backup Wallet</button>
+            </div>
+            <div id="wallet-action-status" class="mt-2" style="font-size: 12px; display: none;"></div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            Import & Export
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <button id="import-wallet-btn" class="btn btn-sm">Import Wallet File</button>
+              <button id="export-private-key" class="btn btn-sm btn-warning">Show Private Key</button>
+              <div id="private-key-display" class="mt-2 seed-phrase-display" style="display: none;"></div>
+            </div>
+            
+            <div class="mb-3">
+              <h4 style="font-size: 14px; margin: 0 0 8px 0;">Import Private Key</h4>
+              <div class="mb-2">
+                <input type="text" id="import-private-key" class="form-control" placeholder="Enter private key (0x...)">
               </div>
               <button id="import-key-btn" class="btn btn-sm">Import Key</button>
-              <span id="import-key-status" class="mt-1" style="display: none; font-size: 12px;"></span>
+              <div id="import-key-status" class="mt-2" style="font-size: 12px; display: none;"></div>
+            </div>
+            
+            
+            <div class="mb-3">
+              <h4 style="font-size: 14px; margin: 0 0 8px 0;">Reset Wallet</h4>
+              <button id="reset-wallet" class="btn btn-sm btn-danger">Reset Wallet</button>
+              <p style="font-size: 11px; color: #ea4335; margin-top: 4px;">
+                Warning: This will delete all wallet data including accounts and cannot be undone!
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Settings Tab -->
+      <div id="settings-tab">
+        <div class="card">
+          <div class="card-header">
+            Network
+          </div>
+          <div class="card-body">
+            <div class="mb-2">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <select class="form-select" id="network-select" style="flex-grow: 1;">
+                  <option value="0x1">Ethereum Mainnet</option>
+                  <option value="0xaa36a7" selected>Sepolia Testnet</option>
+                  <!-- Custom networks will be added here -->
+                </select>
+                <button id="remove-network" class="btn btn-sm btn-danger">Remove</button>
+              </div>
+            </div>
+            <button id="switch-network" class="btn btn-warning">Switch Network</button>
+            <div id="network-status" class="mt-2" style="font-size: 12px;"></div>
+            
+            <hr style="margin: 12px 0; border: 0; border-top: 1px solid #eee;">
+            
+            <div class="mb-2">
+              <h4 style="font-size: 14px; margin: 0 0 8px 0;">Add Custom Network</h4>
+              <div class="mb-2">
+                <label for="chain-name" class="form-label">Network Name</label>
+                <input type="text" class="form-control" id="chain-name" placeholder="My Network">
+              </div>
+              <div class="mb-2">
+                <label for="chain-id" class="form-label">Chain ID (hex)</label>
+                <input type="text" class="form-control" id="chain-id" placeholder="0x89">
+              </div>
+              <div class="mb-2">
+                <label for="rpc-url" class="form-label">RPC URL</label>
+                <input type="text" class="form-control" id="rpc-url" placeholder="https://rpc.example.com">
+              </div>
+              <div class="mb-2">
+                <label for="block-explorer" class="form-label">Block Explorer (optional)</label>
+                <input type="text" class="form-control" id="block-explorer" placeholder="https://explorer.example.com">
+              </div>
+              <div class="mb-2">
+                <label for="currency-symbol" class="form-label">Currency Symbol</label>
+                <input type="text" class="form-control" id="currency-symbol" placeholder="ETH">
+              </div>
+              <div class="mb-2">
+                <label for="currency-decimals" class="form-label">Currency Decimals</label>
+                <input type="number" class="form-control" id="currency-decimals" placeholder="18" value="18">
+              </div>
+              <button id="add-network" class="btn btn-success">Add Network</button>
+              <div id="add-network-status" class="mt-2" style="font-size: 12px;"></div>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </main>
+
+  <!-- Password Dialog -->
+  <div id="password-container" class="password-container">
+    <div class="password-dialog">
+      <h3 id="password-prompt">Enter your password</h3>
+      <div class="mb-3">
+        <input type="password" id="password-input" class="form-control" placeholder="Password">
+        <div id="password-status" style="font-size: 12px; color: #ea4335; margin-top: 4px; display: none;"></div>
+      </div>
+      <div class="password-buttons">
+        <button id="password-cancel" class="btn btn-sm">Cancel</button>
+        <button id="password-submit" class="btn btn-sm btn-success">Submit</button>
+      </div>
+    </div>
   </div>
 
+  <!-- Custom Confirm Dialog -->
+  <div id="confirm-container" class="password-container">
+    <div class="password-dialog">
+      <h3 id="confirm-prompt">Confirm Action</h3>
+      <p id="confirm-message" style="font-size: 14px; margin-bottom: 16px;"></p>
+      <div class="password-buttons">
+        <button id="confirm-cancel" class="btn btn-sm">Cancel</button>
+        <button id="confirm-ok" class="btn btn-sm btn-success">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Elements -->
   <div id="copied-notification">Address copied to clipboard!</div>
 
   <!-- External JavaScript -->

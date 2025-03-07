@@ -5,7 +5,37 @@
 A Firefox extension that implements an Ethereum wallet, providing the `window.ethereum` object to web applications. Compatible with Firefox for Android.
 
 > [!WARNING]
-> **This wallet is for TESTNET PURPOSES ONLY!** It is not secure for use with real funds on mainnet. The private key is stored in the browser's local storage without strong encryption. Use only for development and testing.
+> **This wallet is for TESTNET PURPOSES ONLY!** It is not recommended for use with real funds on mainnet. Use only for development and testing.
+
+## Project Structure
+
+The codebase is organized into the following directories:
+
+```
+src/
+├── utils/          # Utility functions used throughout the codebase
+│   ├── buffer.js   # Buffer polyfill for browser compatibility
+│   ├── crypto.js   # Encryption/decryption utilities
+│   ├── events.js   # Event handling utilities
+│   └── formatting.js # Formatting utilities for addresses, transactions, etc.
+│
+├── wallet/         # Core wallet functionality
+│   ├── core.js     # Wallet initialization, locking/unlocking
+│   ├── accounts.js # Account creation, management, and signing
+│   ├── networks.js # Network/chain management
+│   ├── approvals.js # Transaction and message approval handling
+│   └── transactions.js # Transaction creation and sending
+│
+├── content-scripts/ # Scripts injected into web pages
+│   └── ethereum-provider/ # Ethereum provider implementation for web pages
+│       └── bridge.js  # Communication bridge between page and extension
+│
+├── page-scripts/    # Scripts that run in the web page context
+│   └── ethereum-provider/ # Ethereum provider injected into web pages
+│       ├── provider.js # EIP-1193 compliant provider implementation
+│       └── index.js   # Entry point for the injected provider
+│
+└── background.js    # Background script for the extension
 
 ## Screenshots
 
@@ -19,7 +49,8 @@ A Firefox extension that implements an Ethereum wallet, providing the `window.et
 
 - Provides Ethereum wallet functionality through the `window.ethereum` API
 - Supports multiple chains including Mainnet and Sepolia
-- Manages private keys securely using browser storage
+- Multiple account management with seed phrase recovery
+- Encrypted private key storage with password protection
 - Supports common Ethereum methods including:
   - `eth_requestAccounts`
   - `eth_accounts`
@@ -33,13 +64,25 @@ A Firefox extension that implements an Ethereum wallet, providing the `window.et
 
 The extension popup interface provides:
 
-- Account management
+- BIP-39/44 seed phrase generation and HD wallet derivation
+- Multiple account management
+- Password-encrypted key storage
+- Wallet backup and restore functionality
+- Account importing from seed phrase or private key
 - ETH balance display
 - ERC-20 token tracking
 - Token sending capabilities
 - Message signing
-- Network switching
-- Simple private key backup
+- Network switching and management
+- Firefox for Android compatibility
+
+## Security Features
+
+- Password-based encryption using Web Crypto API
+- Automatic wallet locking
+- Seed phrase generation for secure key management
+- Encrypted wallet export/import
+- Sandboxed approval windows for transactions and signatures
 
 ## Development Setup
 
@@ -97,6 +140,17 @@ npm run web-ext
 ```
 
 This will create a ZIP file in the `web-ext-artifacts` directory that you can submit to the Firefox Add-ons store.
+
+## Wallet Backup and Recovery
+
+This wallet implements BIP-39 and BIP-44 standards for HD wallet derivation:
+- BIP-39: Mnemonic seed phrase generation (12 or 24 words)
+- BIP-44: Hierarchical deterministic wallet paths (m/44'/60'/0'/0/X)
+
+Make sure to:
+1. Securely back up your seed phrase
+2. Never share your seed phrase or private keys with anyone
+3. Use a strong password for wallet encryption
 
 ## Troubleshooting
 

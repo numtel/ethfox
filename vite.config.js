@@ -11,10 +11,10 @@ export default defineConfig({
       input: {
         main: 'index.html',
         approval: 'approval.html',
-        'content-script': resolve(__dirname, 'src/content-script.js'),
-        'injected': resolve(__dirname, 'src/injected-script.js'),
+        'content-script': resolve(__dirname, 'src/content-scripts/ethereum-provider/bridge.js'),
+        'injected': resolve(__dirname, 'src/page-scripts/ethereum-provider/index.js'),
         'background': resolve(__dirname, 'src/background.js'),
-        'popup': resolve(__dirname, 'src/popup.js'),
+        'popup': resolve(__dirname, 'src/popup/index.js'),
         'approval-js': resolve(__dirname, 'src/approval.js')
       },
       output: {
@@ -22,13 +22,31 @@ export default defineConfig({
         chunkFileNames: 'assets/[name].js',
         assetFileNames: 'assets/[name].[ext]'
       }
+    },
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
     }
   },
   resolve: {
     alias: {
       // Ensure proper path resolution for imported modules
-      '@': resolve(__dirname, 'src')
+      '@': resolve(__dirname, 'src'),
+      buffer: 'buffer'
     }
+  },
+  define: {
+    // Fix for browser-passworder Buffer dependency
+    'globalThis.Buffer': 'globalThis.Buffer',
+    'global.Buffer': 'globalThis.Buffer',
+    'process.env.NODE_DEBUG': 'false',
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
   }
 });
 
