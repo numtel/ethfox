@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirm Transaction</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 16px;
+      color: #333;
+      background-color: #f8f9fa;
+      font-size: 14px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      color: #1a73e8;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .card-header {
+      background-color: #f1f3f4;
+      padding: 12px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    .card-body {
+      padding: 16px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f1f3f4;
+    }
+    .info-row:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+    .info-label {
+      color: #5f6368;
+      font-weight: 500;
+    }
+    .info-value {
+      font-weight: 400;
+      max-width: 60%;
+      word-break: break-all;
+      text-align: right;
+    }
+    .highlight {
+      color: #1a73e8;
+      font-weight: 500;
+    }
+    .warning {
+      color: #ea4335;
+      font-weight: 500;
+    }
+    .btn-row {
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn-reject {
+      background-color: #f1f3f4;
+      color: #5f6368;
+    }
+    .btn-reject:hover {
+      background-color: #e8eaed;
+    }
+    .btn-approve {
+      background-color: #1a73e8;
+      color: white;
+    }
+    .btn-approve:hover {
+      background-color: #1669d3;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge-network {
+      background-color: #e8f0fe;
+      color: #1a73e8;
+    }
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100px;
+    }
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(0,0,0,.1);
+      border-radius: 50%;
+      border-top-color: #1a73e8;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .address {
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .data-field {
+      max-height: 100px;
+      overflow-y: auto;
+      background-color: #f5f5f5;
+      padding: 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    .tx-warning {
+      margin-top: 16px;
+      padding: 8px 12px;
+      background-color: #fef7e0;
+      border-left: 4px solid #fbbc04;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Confirm Transaction</h1>
+    <span class="badge badge-network" id="network-badge">Network</span>
+  </div>
+
+  <div id="loading-container" class="loading">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <div id="content-container" style="display: none;">
+    <!-- Transaction Details Card -->
+    <div class="card">
+      <div class="card-header">
+        Transaction Details
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <span class="info-label">From</span>
+          <span class="info-value address" id="from-address"></span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">To</span>
+          <span class="info-value address" id="to-address"></span>
+        </div>
+        <div class="info-row" id="value-row">
+          <span class="info-label">Value</span>
+          <span class="info-value highlight" id="tx-value"></span>
+        </div>
+        <div class="info-row" id="gas-row">
+          <span class="info-label">Gas Limit</span>
+          <span class="info-value" id="gas-limit">21000</span>
+        </div>
+        <div class="info-row" id="gas-price-row" style="display: none;">
+          <span class="info-label">Gas Price</span>
+          <span class="info-value" id="gas-price">0</span>
+        </div>
+        <div class="info-row" id="max-fee-row" style="display: none;">
+          <span class="info-label">Max Fee</span>
+          <span class="info-value" id="max-fee">0</span>
+        </div>
+        <div class="info-row" id="priority-fee-row" style="display: none;">
+          <span class="info-label">Priority Fee</span>
+          <span class="info-value" id="priority-fee">0</span>
+        </div>
+        <div class="info-row" id="nonce-row">
+          <span class="info-label">Nonce</span>
+          <span class="info-value" id="tx-nonce">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transaction Data Card (if transaction has data) -->
+    <div class="card" id="data-card" style="display: none;">
+      <div class="card-header">
+        Transaction Data
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <span class="info-label">Data</span>
+          <div class="data-field" id="tx-data"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tx-warning">
+      <strong>Warning:</strong> Only confirm transactions from sites you trust. 
+      Malicious sites can use transactions to gain access to your funds or compromise your wallet.
+    </div>
+
+    <div class="btn-row" style="margin-top: 20px;">
+      <button class="btn btn-reject" id="reject-btn">Reject</button>
+      <button class="btn btn-approve" id="approve-btn">Approve</button>
+    </div>
+  </div>
+
+  <script type="module" src="./src/approval.js"></script>
+</body>
+</html>

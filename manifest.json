@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Ethereum Wallet Extension",
+  "version": "1.0.0",
+  "description": "Ethereum wallet extension implementing window.ethereum.",
+  "permissions": ["storage", "activeTab", "tabs"],
+  "icons": {
+    "24": "ethfox2.24.png",
+    "96": "ethfox2.96.png",
+    "256": "ethfox2.256.png",
+    "512": "ethfox2.512.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [{
+    "resources": ["injected.js", "assets/*.js", "approval.html"],
+    "matches": ["<all_urls>"]
+  }],
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Ethereum Wallet",
+    "default_icon": {
+      "24": "ethfox2.24.png",
+      "96": "ethfox2.96.png",
+      "256": "ethfox2.256.png",
+      "512": "ethfox2.512.png"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "eth-wallet@example.com"
+    },
+    "gecko_android": {
+      "strict_min_version": "113.0"
+    }
+  }
+}
+

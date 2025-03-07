@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ethereum Wallet</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 12px;
+      width: 360px;
+      max-height: 600px;
+      overflow-y: auto;
+      color: #333;
+      background-color: #f8f9fa;
+      font-size: 14px;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0 0 10px 0;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #dee2e6;
+      color: #1a73e8;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .card-header {
+      background-color: #f1f3f4;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 14px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    .card-body {
+      padding: 12px;
+    }
+    .btn {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: #1669d3;
+    }
+    .btn:disabled {
+      background-color: #a8c7fa;
+      cursor: not-allowed;
+    }
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .btn-success {
+      background-color: #34a853;
+    }
+    .btn-success:hover {
+      background-color: #2d9248;
+    }
+    .btn-warning {
+      background-color: #fbbc04;
+      color: #333;
+    }
+    .btn-warning:hover {
+      background-color: #f2b600;
+    }
+    .form-control {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 13px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .form-select {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 13px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      background-color: white;
+    }
+    .form-label {
+      margin-bottom: 4px;
+      display: block;
+      font-weight: 500;
+      font-size: 12px;
+    }
+    .mb-2 {
+      margin-bottom: 8px;
+    }
+    .mb-3 {
+      margin-bottom: 12px;
+    }
+    .mt-2 {
+      margin-top: 8px;
+    }
+    .token-balance {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 8px;
+      border-bottom: 1px solid #f1f3f4;
+    }
+    .token-balance:last-child {
+      border-bottom: none;
+    }
+    .token-symbol {
+      font-weight: 600;
+    }
+    .account-info {
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-primary {
+      background-color: #e8f0fe;
+      color: #1a73e8;
+    }
+    .badge-success {
+      background-color: #e6f4ea;
+      color: #34a853;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #dee2e6;
+      margin-bottom: 12px;
+    }
+    .tab {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active {
+      border-bottom-color: #1a73e8;
+      color: #1a73e8;
+      font-weight: 500;
+    }
+    .tab-content > div {
+      display: none;
+    }
+    .tab-content > div.active {
+      display: block;
+    }
+    .loading {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(0,0,0,.1);
+      border-radius: 50%;
+      border-top-color: #1a73e8;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    #copied-notification {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0,0,0,0.8);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Ethereum Wallet</h1>
+  
+  <div class="card">
+    <div class="card-header">
+      Account
+    </div>
+    <div class="card-body">
+      <div id="wallet-status">Loading wallet...</div>
+      <div id="account-address" class="account-info mt-2" style="color: #1a73e8; text-decoration: underline;"></div>
+      <div class="mt-2">
+        <span id="chain-info" class="badge badge-primary"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="assets">Assets</div>
+    <div class="tab" data-tab="send">Send</div>
+    <div class="tab" data-tab="settings">Settings</div>
+  </div>
+
+  <div class="tab-content">
+    <!-- Assets Tab -->
+    <div id="assets-tab" class="active">
+      <div class="card">
+        <div class="card-header">
+          ETH Balance
+        </div>
+        <div class="card-body">
+          <div id="eth-balance">Loading...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          Tokens
+        </div>
+        <div class="card-body">
+          <div id="token-balances">No tokens added yet</div>
+          <div class="mt-2">
+            <div class="mb-2">
+              <input type="text" id="token-address" class="form-control" placeholder="Token Contract Address">
+            </div>
+            <button id="add-token" class="btn btn-sm">Add Token</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Send Tab -->
+    <div id="send-tab">
+      <div class="card">
+        <div class="card-header">
+          Send Token
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <label for="token-select" class="form-label">Token</label>
+            <select class="form-select" id="token-select">
+              <option value="eth" selected>ETH</option>
+              <!-- Token options will be added here -->
+            </select>
+          </div>
+          <div class="mb-2">
+            <label for="recipient" class="form-label">Recipient</label>
+            <input type="text" class="form-control" id="recipient" placeholder="0x...">
+          </div>
+          <div class="mb-3">
+            <label for="amount" class="form-label">Amount</label>
+            <input type="text" class="form-control" id="amount" placeholder="0.0">
+          </div>
+          <button id="send-token" class="btn btn-success">Send</button>
+          <div id="tx-status" class="mt-2" style="font-size: 12px;"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          Sign Message
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <textarea class="form-control" id="message" rows="2" placeholder="Message to sign"></textarea>
+          </div>
+          <button id="sign-message" class="btn">Sign</button>
+          <div id="signature-result" class="mt-2" style="font-size: 12px; word-break: break-all;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div id="settings-tab">
+      <div class="card">
+        <div class="card-header">
+          Network
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <select class="form-select" id="network-select" style="flex-grow: 1;">
+                <option value="0x1">Ethereum Mainnet</option>
+                <option value="0xaa36a7" selected>Sepolia Testnet</option>
+                <!-- Custom networks will be added here -->
+              </select>
+              <button id="remove-network" class="btn btn-sm" style="background-color: #ea4335;">Remove</button>
+            </div>
+          </div>
+          <button id="switch-network" class="btn btn-warning">Switch Network</button>
+          <div id="network-status" class="mt-2" style="font-size: 12px;"></div>
+          
+          <hr style="margin: 12px 0; border: 0; border-top: 1px solid #eee;">
+          
+          <div class="mb-2">
+            <h4 style="font-size: 14px; margin: 0 0 8px 0;">Add Custom Network</h4>
+            <div class="mb-2">
+              <label for="chain-name" class="form-label">Network Name</label>
+              <input type="text" class="form-control" id="chain-name" placeholder="My Network">
+            </div>
+            <div class="mb-2">
+              <label for="chain-id" class="form-label">Chain ID (hex)</label>
+              <input type="text" class="form-control" id="chain-id" placeholder="0x89">
+            </div>
+            <div class="mb-2">
+              <label for="rpc-url" class="form-label">RPC URL</label>
+              <input type="text" class="form-control" id="rpc-url" placeholder="https://rpc.example.com">
+            </div>
+            <div class="mb-2">
+              <label for="block-explorer" class="form-label">Block Explorer (optional)</label>
+              <input type="text" class="form-control" id="block-explorer" placeholder="https://explorer.example.com">
+            </div>
+            <div class="mb-2">
+              <label for="currency-symbol" class="form-label">Currency Symbol</label>
+              <input type="text" class="form-control" id="currency-symbol" placeholder="ETH">
+            </div>
+            <div class="mb-2">
+              <label for="currency-decimals" class="form-label">Currency Decimals</label>
+              <input type="number" class="form-control" id="currency-decimals" placeholder="18" value="18">
+            </div>
+            <button id="add-network" class="btn btn-success">Add Network</button>
+            <div id="add-network-status" class="mt-2" style="font-size: 12px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          Account
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <button id="copy-address" class="btn btn-sm">Copy Address</button>
+            <button id="export-private-key" class="btn btn-sm btn-warning">Export Private Key</button>
+            <div id="private-key-display" class="mt-2" style="display: none; font-size: 12px; word-break: break-all;"></div>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Private Key Management</label>
+            <div class="mb-2">
+              <button id="generate-new-key" class="btn btn-sm btn-success">Generate New Key</button>
+              <span id="generate-key-status" class="mt-1" style="display: none; font-size: 12px;"></span>
+            </div>
+            <div>
+              <div class="mb-2">
+                <input type="text" id="import-private-key" class="form-control" placeholder="Enter private key to import">
+              </div>
+              <button id="import-key-btn" class="btn btn-sm">Import Key</button>
+              <span id="import-key-status" class="mt-1" style="display: none; font-size: 12px;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="copied-notification">Address copied to clipboard!</div>
+
+  <!-- External JavaScript -->
+  <script type="module">
+    import './src/popup.js';
+  </script>
+</body>
+</html>

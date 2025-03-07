@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ethereum Wallet Extension Test DApp</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .card {
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .token-balance {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      background-color: #f8f9fa;
+    }
+    .action-buttons {
+      margin-top: 20px;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0,0,0,.3);
+      border-radius: 50%;
+      border-top-color: #000;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h1>Ethereum Wallet Extension Test</h1>
+    
+    <div class="card mt-4">
+      <div class="card-header">
+        Wallet Status
+      </div>
+      <div class="card-body">
+        <div id="wallet-status">Checking wallet connection...</div>
+        <div id="chain-info" class="mt-2"></div>
+        <button id="connect-wallet" class="btn btn-primary mt-3">Connect Wallet</button>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header">
+        ETH Balance
+      </div>
+      <div class="card-body">
+        <div id="eth-balance">Connect wallet to view balance</div>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header">
+        ERC-20 Tokens
+      </div>
+      <div class="card-body">
+        <div id="token-balances">Connect wallet to view ERC-20 balances</div>
+        <div class="mt-3">
+          <h5>Add Token to Watch</h5>
+          <div class="input-group mb-3">
+            <input type="text" id="token-address" class="form-control" placeholder="Token Contract Address">
+            <button class="btn btn-outline-secondary" type="button" id="add-token">Add Token</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header">
+        Send ERC-20 Token
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="token-select" class="form-label">Select Token</label>
+          <select class="form-select" id="token-select">
+            <option value="" selected>Select a token</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="recipient" class="form-label">Recipient Address</label>
+          <input type="text" class="form-control" id="recipient" placeholder="0x...">
+        </div>
+        <div class="mb-3">
+          <label for="amount" class="form-label">Amount</label>
+          <input type="text" class="form-control" id="amount" placeholder="0.0">
+        </div>
+        <button id="send-token" class="btn btn-success">Send Token</button>
+        <div id="tx-status" class="mt-2"></div>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header">
+        Sign Message
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="message" class="form-label">Message</label>
+          <textarea class="form-control" id="message" rows="3" placeholder="Enter a message to sign"></textarea>
+        </div>
+        <button id="sign-message" class="btn btn-info text-white">Sign Message</button>
+        <div id="signature-result" class="mt-2"></div>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header">
+        Switch Network
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="network-select" class="form-label">Select Network</label>
+          <select class="form-select" id="network-select">
+            <option value="0x1">Ethereum Mainnet</option>
+            <option value="0xaa36a7" selected>Sepolia Testnet</option>
+          </select>
+        </div>
+        <button id="switch-network" class="btn btn-warning">Switch Network</button>
+        <div id="network-status" class="mt-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ERC-20 ABI -->
+  <script>
+    const ERC20_ABI = [
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "name",
+        "outputs": [{"name": "", "type": "string"}],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "symbol",
+        "outputs": [{"name": "", "type": "string"}],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "decimals",
+        "outputs": [{"name": "", "type": "uint8"}],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [{"name": "_owner", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "balance", "type": "uint256"}],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {"name": "_to", "type": "address"},
+          {"name": "_value", "type": "uint256"}
+        ],
+        "name": "transfer",
+        "outputs": [{"name": "", "type": "bool"}],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
+  </script>
+
+  <!-- Main App Script -->
+  <script>
+    // Wait for page to load
+    document.addEventListener('DOMContentLoaded', async () => {
+      // DOM Elements
+      const walletStatusEl = document.getElementById('wallet-status');
+      const chainInfoEl = document.getElementById('chain-info');
+      const connectWalletBtn = document.getElementById('connect-wallet');
+      const ethBalanceEl = document.getElementById('eth-balance');
+      const tokenBalancesEl = document.getElementById('token-balances');
+      const tokenAddressInput = document.getElementById('token-address');
+      const addTokenBtn = document.getElementById('add-token');
+      const tokenSelectEl = document.getElementById('token-select');
+      const recipientInput = document.getElementById('recipient');
+      const amountInput = document.getElementById('amount');
+      const sendTokenBtn = document.getElementById('send-token');
+      const txStatusEl = document.getElementById('tx-status');
+      const messageInput = document.getElementById('message');
+      const signMessageBtn = document.getElementById('sign-message');
+      const signatureResultEl = document.getElementById('signature-result');
+      const networkSelectEl = document.getElementById('network-select');
+      const switchNetworkBtn = document.getElementById('switch-network');
+      const networkStatusEl = document.getElementById('network-status');
+
+      // State variables
+      let currentAccount = null;
+      let tokens = JSON.parse(localStorage.getItem('tokens') || '[]');
+      let currentChainId = null;
+
+      // Wait for ethereum provider to be injected
+      const waitForEthereum = () => {
+        return new Promise((resolve) => {
+          // If window.ethereum already exists, resolve immediately
+          if (window.ethereum) {
+            return resolve(window.ethereum);
+          }
+          
+          // If not, wait for it to be injected
+          let checkCount = 0;
+          const checkInterval = setInterval(() => {
+            checkCount++;
+            walletStatusEl.textContent = `Waiting for wallet extension... (${checkCount})`;
+            
+            if (window.ethereum) {
+              clearInterval(checkInterval);
+              resolve(window.ethereum);
+            }
+            
+            // Give up after 5 seconds (20 * 250ms = 5s)
+            if (checkCount > 20) {
+              clearInterval(checkInterval);
+              resolve(null);
+            }
+          }, 250);
+        });
+      };
+      
+      // Check if ethereum provider is available
+      const checkWalletConnection = async () => {
+        try {
+          walletStatusEl.textContent = 'Checking for wallet extension...';
+          
+          // Wait for ethereum provider with timeout
+          const ethereum = await waitForEthereum();
+          
+          if (ethereum) {
+            walletStatusEl.textContent = 'Wallet extension detected!';
+            
+            // Setup event listeners
+            ethereum.on('accountsChanged', (accounts) => {
+              console.log('Accounts changed:', accounts);
+              if (accounts.length > 0) {
+                currentAccount = accounts[0];
+                walletStatusEl.textContent = `Connected: ${currentAccount}`;
+                getEthBalance();
+                getTokenBalances();
+              } else {
+                walletStatusEl.textContent = 'Wallet disconnected. Please connect again.';
+                connectWalletBtn.disabled = false;
+                connectWalletBtn.textContent = 'Connect Wallet';
+                currentAccount = null;
+              }
+            });
+            
+            ethereum.on('chainChanged', (chainId) => {
+              console.log('Chain changed:', chainId);
+              currentChainId = chainId;
+              displayChainInfo(chainId);
+              getEthBalance();
+              getTokenBalances();
+            });
+            
+            try {
+              // Check if already connected
+              const accounts = await ethereum.request({ method: 'eth_accounts' });
+              if (accounts.length > 0) {
+                connectWallet();
+              }
+            } catch (error) {
+              console.error('Error checking accounts:', error);
+              walletStatusEl.textContent = 'Error connecting to wallet: ' + error.message;
+            }
+          } else {
+            walletStatusEl.textContent = 'No Ethereum wallet extension detected. Please install one.';
+            connectWalletBtn.disabled = true;
+          }
+        } catch (error) {
+          console.error('Error in wallet detection:', error);
+          walletStatusEl.textContent = 'Error detecting wallet: ' + error.message;
+        }
+      };
+
+      // Connect to wallet
+      const connectWallet = async () => {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          currentAccount = accounts[0];
+          walletStatusEl.textContent = `Connected: ${currentAccount}`;
+          connectWalletBtn.textContent = 'Connected';
+          connectWalletBtn.disabled = true;
+          
+          // Get chain ID
+          currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+          displayChainInfo(currentChainId);
+          
+          // Get balances
+          getEthBalance();
+          getTokenBalances();
+          updateTokenSelect();
+        } catch (error) {
+          console.error('Error connecting to wallet:', error);
+          walletStatusEl.textContent = 'Error connecting to wallet: ' + error.message;
+        }
+      };
+
+      // Display chain info
+      const displayChainInfo = (chainId) => {
+        let chainName = '';
+        switch (chainId) {
+          case '0x1':
+            chainName = 'Ethereum Mainnet';
+            break;
+          case '0xaa36a7':
+            chainName = 'Sepolia Testnet';
+            break;
+          default:
+            chainName = `Chain ID: ${chainId}`;
+        }
+        chainInfoEl.textContent = `Current Network: ${chainName}`;
+      };
+
+      // Get ETH balance
+      const getEthBalance = async () => {
+        if (!currentAccount) return;
+        
+        try {
+          ethBalanceEl.innerHTML = '<div class="loading"></div> Loading...';
+          const balance = await window.ethereum.request({
+            method: 'eth_getBalance',
+            params: [currentAccount, 'latest']
+          });
+          
+          // Convert from wei to ETH
+          const ethBalance = parseInt(balance, 16) / 1e18;
+          ethBalanceEl.textContent = `${ethBalance.toFixed(4)} ETH`;
+        } catch (error) {
+          console.error('Error getting ETH balance:', error);
+          ethBalanceEl.textContent = 'Error loading ETH balance';
+        }
+      };
+
+      // Add a token to track
+      const addToken = async () => {
+        const tokenAddress = tokenAddressInput.value.trim();
+        if (!tokenAddress.startsWith('0x') || tokenAddress.length !== 42) {
+          alert('Please enter a valid ERC-20 token address');
+          return;
+        }
+        
+        // Check if token already exists
+        if (tokens.some(t => t.address.toLowerCase() === tokenAddress.toLowerCase())) {
+          alert('Token already added');
+          return;
+        }
+        
+        try {
+          // Get token info
+          const tokenName = await callContractMethod(tokenAddress, 'name', []);
+          const tokenSymbol = await callContractMethod(tokenAddress, 'symbol', []);
+          const tokenDecimals = await callContractMethod(tokenAddress, 'decimals', []);
+          
+          // Add token to the list
+          const newToken = {
+            address: tokenAddress,
+            name: tokenName,
+            symbol: tokenSymbol,
+            decimals: parseInt(tokenDecimals)
+          };
+          
+          tokens.push(newToken);
+          localStorage.setItem('tokens', JSON.stringify(tokens));
+          tokenAddressInput.value = '';
+          
+          // Update balances and select
+          getTokenBalances();
+          updateTokenSelect();
+        } catch (error) {
+          console.error('Error adding token:', error);
+          alert('Error adding token: ' + error.message);
+        }
+      };
+
+      // Get token balances
+      const getTokenBalances = async () => {
+        if (!currentAccount || tokens.length === 0) {
+          tokenBalancesEl.textContent = tokens.length === 0 ? 'No tokens added yet' : 'Connect wallet to view balances';
+          return;
+        }
+        
+        tokenBalancesEl.innerHTML = '<div class="loading"></div> Loading token balances...';
+        
+        try {
+          let balancesHtml = '';
+          
+          for (const token of tokens) {
+            // Call balanceOf on the token contract
+            const balance = await callContractMethod(
+              token.address,
+              'balanceOf',
+              [currentAccount]
+            );
+            
+            // Convert balance based on decimals
+            const formattedBalance = (parseInt(balance) / Math.pow(10, token.decimals)).toFixed(4);
+            
+            balancesHtml += `
+              <div class="token-balance">
+                <div>
+                  <strong>${token.symbol}</strong> - ${token.name}
+                </div>
+                <div>${formattedBalance}</div>
+              </div>
+            `;
+          }
+          
+          tokenBalancesEl.innerHTML = balancesHtml || 'No tokens found';
+        } catch (error) {
+          console.error('Error getting token balances:', error);
+          tokenBalancesEl.textContent = 'Error loading token balances';
+        }
+      };
+
+      // Update token select dropdown
+      const updateTokenSelect = () => {
+        // Clear previous options except the first one
+        while (tokenSelectEl.options.length > 1) {
+          tokenSelectEl.remove(1);
+        }
+        
+        // Add token options
+        tokens.forEach(token => {
+          const option = document.createElement('option');
+          option.value = token.address;
+          option.text = `${token.symbol} - ${token.name}`;
+          tokenSelectEl.add(option);
+        });
+      };
+
+      // Send token
+      const sendToken = async () => {
+        const tokenAddress = tokenSelectEl.value;
+        const recipient = recipientInput.value.trim();
+        const amount = amountInput.value.trim();
+        
+        if (!tokenAddress || tokenAddress === '') {
+          alert('Please select a token');
+          return;
+        }
+        
+        if (!recipient.startsWith('0x') || recipient.length !== 42) {
+          alert('Please enter a valid recipient address');
+          return;
+        }
+        
+        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+          alert('Please enter a valid amount');
+          return;
+        }
+        
+        try {
+          txStatusEl.innerHTML = '<div class="loading"></div> Processing transaction...';
+          sendTokenBtn.disabled = true;
+          
+          // Find token to get its decimals
+          const token = tokens.find(t => t.address === tokenAddress);
+          const amountInTokenUnits = (parseFloat(amount) * Math.pow(10, token.decimals)).toString();
+          
+          // Encode the transfer function call
+          const data = encodeERC20TransferData(recipient, amountInTokenUnits);
+          
+          // Send the transaction
+          const txHash = await window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: currentAccount,
+              to: tokenAddress,
+              data
+            }]
+          });
+          
+          txStatusEl.innerHTML = `Transaction sent! Hash: <a href="${getExplorerUrl(currentChainId)}/tx/${txHash}" target="_blank">${txHash.substring(0, 10)}...${txHash.substring(txHash.length - 8)}</a>`;
+          
+          // Reset form
+          recipientInput.value = '';
+          amountInput.value = '';
+        } catch (error) {
+          console.error('Error sending token:', error);
+          txStatusEl.textContent = 'Error: ' + error.message;
+        } finally {
+          sendTokenBtn.disabled = false;
+        }
+      };
+
+      // Sign a message
+      const signMessage = async () => {
+        const message = messageInput.value.trim();
+        
+        if (!message) {
+          alert('Please enter a message to sign');
+          return;
+        }
+        
+        try {
+          signatureResultEl.innerHTML = '<div class="loading"></div> Signing message...';
+          signMessageBtn.disabled = true;
+          
+          // Convert message to hex
+          const messageHex = '0x' + Buffer.from(message).toString('hex');
+          
+          // Sign the message
+          const signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [messageHex, currentAccount]
+          });
+          
+          signatureResultEl.innerHTML = `Signature: <small>${signature}</small>`;
+        } catch (error) {
+          console.error('Error signing message:', error);
+          signatureResultEl.textContent = 'Error: ' + error.message;
+        } finally {
+          signMessageBtn.disabled = false;
+        }
+      };
+
+      // Switch network
+      const switchNetwork = async () => {
+        const chainId = networkSelectEl.value;
+        
+        try {
+          networkStatusEl.innerHTML = '<div class="loading"></div> Switching network...';
+          switchNetworkBtn.disabled = true;
+          
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId }]
+          });
+          
+          currentChainId = chainId;
+          displayChainInfo(chainId);
+          networkStatusEl.textContent = 'Network switched successfully!';
+          
+          // Refresh balances for the new network
+          getEthBalance();
+          getTokenBalances();
+        } catch (error) {
+          console.error('Error switching network:', error);
+          networkStatusEl.textContent = 'Error: ' + error.message;
+          
+          // If the network doesn't exist in the wallet, we can try to add it
+          if (error.code === 4902) {
+            try {
+              // This is just for Sepolia, would need to be extended for other chains
+              if (chainId === '0xaa36a7') {
+                await window.ethereum.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [{
+                    chainId: '0xaa36a7',
+                    chainName: 'Sepolia Testnet',
+                    nativeCurrency: {
+                      name: 'Sepolia ETH',
+                      symbol: 'ETH',
+                      decimals: 18
+                    },
+                    rpcUrls: ['https://sepolia.infura.io/v3/'],
+                    blockExplorerUrls: ['https://sepolia.etherscan.io/']
+                  }]
+                });
+                networkStatusEl.textContent = 'Sepolia network added!';
+              }
+            } catch (addError) {
+              networkStatusEl.textContent = 'Error adding network: ' + addError.message;
+            }
+          }
+        } finally {
+          switchNetworkBtn.disabled = false;
+        }
+      };
+
+      // Helper: Call a contract method
+      const callContractMethod = async (contractAddress, methodName, params) => {
+        // Encode function signature and parameters
+        const methodSignatures = {
+          'name': '0x06fdde03',
+          'symbol': '0x95d89b41',
+          'decimals': '0x313ce567',
+          'balanceOf': '0x70a08231'
+        };
+        
+        let data = methodSignatures[methodName];
+        
+        // Add parameters if needed (only handling balanceOf for now)
+        if (methodName === 'balanceOf' && params.length > 0) {
+          // Pad address to 32 bytes
+          const paddedAddress = params[0].substring(2).padStart(64, '0');
+          data += paddedAddress;
+        }
+        
+        // Make the call
+        const result = await window.ethereum.request({
+          method: 'eth_call',
+          params: [{
+            to: contractAddress,
+            data
+          }, 'latest']
+        });
+        
+        // Decode the result based on the method
+        switch (methodName) {
+          case 'name':
+          case 'symbol':
+            // String decoding - first 32 bytes is the offset, next 32 bytes is length, then the string data
+            if (result.length < 128) return '';
+            const length = parseInt(result.slice(66, 130), 16);
+            if (length === 0) return '';
+            return hexToString(result.slice(130, 130 + length * 2));
+          
+          case 'decimals':
+            // uint8 decoding
+            return parseInt(result, 16);
+          
+          case 'balanceOf':
+            // uint256 decoding
+            return result;
+          
+          default:
+            return result;
+        }
+      };
+
+      // Helper: Encode ERC20 transfer data
+      const encodeERC20TransferData = (to, amount) => {
+        // Function signature for transfer(address,uint256)
+        const functionSignature = '0xa9059cbb';
+        
+        // Encode "to" address - pad to 32 bytes
+        const encodedTo = to.substring(2).padStart(64, '0');
+        
+        // Encode amount - convert to hex and pad to 32 bytes
+        const hexAmount = Number(amount).toString(16);
+        const encodedAmount = hexAmount.padStart(64, '0');
+        
+        return functionSignature + encodedTo + encodedAmount;
+      };
+
+      // Helper: Convert hex to string
+      const hexToString = (hex) => {
+        let result = '';
+        for (let i = 0; i < hex.length; i += 2) {
+          const code = parseInt(hex.substr(i, 2), 16);
+          if (code > 0) result += String.fromCharCode(code);
+        }
+        return result;
+      };
+
+      // Helper: Get explorer URL based on chain
+      const getExplorerUrl = (chainId) => {
+        switch (chainId) {
+          case '0x1':
+            return 'https://etherscan.io';
+          case '0xaa36a7':
+            return 'https://sepolia.etherscan.io';
+          default:
+            return 'https://etherscan.io';
+        }
+      };
+
+      // Event Listeners
+      connectWalletBtn.addEventListener('click', connectWallet);
+      addTokenBtn.addEventListener('click', addToken);
+      sendTokenBtn.addEventListener('click', sendToken);
+      signMessageBtn.addEventListener('click', signMessage);
+      switchNetworkBtn.addEventListener('click', switchNetwork);
+
+      // Initialize
+      checkWalletConnection();
+    });
+  </script>
+</body>
+</html>
