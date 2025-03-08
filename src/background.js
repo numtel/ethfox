@@ -1,8 +1,11 @@
 // Import the wallet provider
 import walletProvider from './wallet-provider.js';
 
+// Use chrome as the default and fallback to browser for Firefox
+const browserAPI = globalThis.chrome || globalThis.browser;
+
 // Listen for messages from content script and popup
-browser.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+browserAPI.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   console.log('Background received message:', request, request.params);
   
   try {
@@ -31,7 +34,7 @@ browser.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         result = await walletProvider.handleRequest(request.method, request.params || []);
       }
       
-      browser.tabs.sendMessage(sender.tab.id, {
+      browserAPI.tabs.sendMessage(sender.tab.id, {
         id: request.id,
         result
       });
@@ -41,7 +44,7 @@ browser.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     
     // If it's from a tab, send error back to content script
     if (sender.tab) {
-      browser.tabs.sendMessage(sender.tab.id, {
+      browserAPI.tabs.sendMessage(sender.tab.id, {
         id: request.id,
         error: error.message
       });

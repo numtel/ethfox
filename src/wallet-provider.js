@@ -2,6 +2,9 @@ import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { mainnet, sepolia } from 'viem/chains';
 
+// Use chrome as the default and fallback to browser for Firefox
+const browserAPI = globalThis.chrome || globalThis.browser;
+
 // Available chains - will be extended with user-added chains
 const chains = {
   '0x1': mainnet,
@@ -11,7 +14,7 @@ const chains = {
 // Get all chains from storage
 async function getSavedChains() {
   try {
-    const { userChains } = await browser.storage.local.get('userChains');
+    const { userChains } = await browserAPI.storage.local.get('userChains');
     return userChains || {};
   } catch (error) {
     console.error('Error getting user chains:', error);
@@ -31,7 +34,7 @@ const DEFAULT_CHAIN_ID = '0xaa36a7';
 // Get the current chain from storage or use default
 async function getCurrentChain() {
   try {
-    const { chainId } = await browser.storage.local.get('chainId');
+    const { chainId } = await browserAPI.storage.local.get('chainId');
     const allChains = await loadAllChains();
     return allChains[chainId || DEFAULT_CHAIN_ID] || sepolia;
   } catch (error) {
@@ -44,7 +47,7 @@ async function getCurrentChain() {
 async function setCurrentChain(chainId) {
   const allChains = await loadAllChains();
   if (allChains[chainId]) {
-    await browser.storage.local.set({ chainId });
+    await browserAPI.storage.local.set({ chainId });
     return allChains[chainId];
   }
   throw new Error(`Unsupported chain ID: ${chainId}`);
@@ -76,7 +79,7 @@ async function setPrivateKey(privateKey) {
     }
     
     // Store the private key
-    await browser.storage.local.set({ privateKey });
+    await browserAPI.storage.local.set({ privateKey });
     return privateKeyToAccount(privateKey);
   } catch (error) {
     console.error('Error setting private key:', error);
@@ -87,13 +90,13 @@ async function setPrivateKey(privateKey) {
 // Get or create a private key from browser storage
 async function getOrCreateAccount() {
   try {
-    const { privateKey } = await browser.storage.local.get('privateKey');
+    const { privateKey } = await browserAPI.storage.local.get('privateKey');
     if (privateKey) {
       return privateKeyToAccount(privateKey);
     } else {
       // Generate and save a new private key
       const privateKey = generatePrivateKey();
-      await browser.storage.local.set({ privateKey });
+      await browserAPI.storage.local.set({ privateKey });
       return privateKeyToAccount(privateKey);
     }
   } catch (error) {
@@ -416,7 +419,7 @@ async function handleRequest(method, params) {
           }
           
           // Now get the private key and sign locally (doesn't use RPC)
-          const { privateKey } = await browser.storage.local.get('privateKey');
+          const { privateKey } = await browserAPI.storage.local.get('privateKey');
           if (!privateKey) {
             throw new Error('Private key not found');
           }
@@ -497,7 +500,7 @@ async function handleRequest(method, params) {
           }
           
           // Get the private key for signing
-          const { privateKey } = await browser.storage.local.get('privateKey');
+          const { privateKey } = await browserAPI.storage.local.get('privateKey');
           if (!privateKey) {
             throw new Error('Private key not found');
           }
@@ -567,10 +570,10 @@ async function handleRequest(method, params) {
         }
         
         // Save the new chain to storage
-        const { userChains } = await browser.storage.local.get('userChains');
+        const { userChains } = await browserAPI.storage.local.get('userChains');
         const updatedUserChains = { ...(userChains || {}) };
         updatedUserChains[addChainId] = newChain;
-        await browser.storage.local.set({ userChains: updatedUserChains });
+        await browserAPI.storage.local.set({ userChains: updatedUserChains });
         
         // Switch to the new chain and emit event
         await setCurrentChain(addChainId);
@@ -622,26 +625,26 @@ async function handleRequest(method, params) {
 async function storeApprovalRequest(request) {
   try {
     // Get existing pending requests
-    const { pendingApprovals } = await browser.storage.local.get('pendingApprovals');
+    const { pendingApprovals } = await browserAPI.storage.local.get('pendingApprovals');
     const approvals = pendingApprovals || {};
     
     // Add the new request
     approvals[request.id] = request;
     
     // Save back to storage
-    await browser.storage.local.set({ pendingApprovals: approvals });
+    await browserAPI.storage.local.set({ pendingApprovals: approvals });
     
     // Create a popup to request user approval
     try {
-      // Check if we're on Firefox for Android (browser.windows is undefined)
-      if (typeof browser.windows === 'undefined') {
+      // Check if we're on Firefox for Android (browserAPI.windows is undefined)
+      if (typeof browserAPI.windows === 'undefined') {
         // For Firefox Android, open as a tab instead
-        await browser.tabs.create({
+        await browserAPI.tabs.create({
           url: `/approval.html?id=${request.id}`
         });
       } else {
         // For desktop Firefox, open as a popup window
-        await browser.windows.create({
+        await browserAPI.windows.create({
           url: `/approval.html?id=${request.id}`,
           type: 'popup',
           width: 400,
@@ -652,7 +655,7 @@ async function storeApprovalRequest(request) {
     } catch (windowError) {
       console.error('Error creating approval window/tab:', windowError);
       // Fallback to opening as a tab if window creation fails
-      await browser.tabs.create({
+      await browserAPI.tabs.create({
         url: `/approval.html?id=${request.id}`
       });
     }
@@ -669,7 +672,7 @@ async function waitForApproval(requestId) {
   return new Promise((resolve) => {
     const checkApproval = async () => {
       try {
-        const { approvalResults } = await browser.storage.local.get('approvalResults');
+        const { approvalResults } = await browserAPI.storage.local.get('approvalResults');
         
         if (approvalResults && approvalResults[requestId]) {
           // We have a result
@@ -678,7 +681,7 @@ async function waitForApproval(requestId) {
           // Clean up the result
           const updatedResults = { ...approvalResults };
           delete updatedResults[requestId];
-          await browser.storage.local.set({ approvalResults: updatedResults });
+          await browserAPI.storage.local.set({ approvalResults: updatedResults });
           
           resolve(result);
           return;
@@ -701,12 +704,12 @@ async function waitForApproval(requestId) {
 // Remove a pending approval request
 async function removeApprovalRequest(requestId) {
   try {
-    const { pendingApprovals } = await browser.storage.local.get('pendingApprovals');
+    const { pendingApprovals } = await browserAPI.storage.local.get('pendingApprovals');
     
     if (pendingApprovals && pendingApprovals[requestId]) {
       const updatedApprovals = { ...pendingApprovals };
       delete updatedApprovals[requestId];
-      await browser.storage.local.set({ pendingApprovals: updatedApprovals });
+      await browserAPI.storage.local.set({ pendingApprovals: updatedApprovals });
     }
   } catch (error) {
     console.error('Error removing approval request:', error);
@@ -716,7 +719,7 @@ async function removeApprovalRequest(requestId) {
 // Get all pending approval requests
 async function getPendingApprovals() {
   try {
-    const { pendingApprovals } = await browser.storage.local.get('pendingApprovals');
+    const { pendingApprovals } = await browserAPI.storage.local.get('pendingApprovals');
     return pendingApprovals || {};
   } catch (error) {
     console.error('Error getting pending approvals:', error);
@@ -728,14 +731,14 @@ async function getPendingApprovals() {
 async function resolveApproval(requestId, approved) {
   try {
     // Get the pending request
-    const { pendingApprovals } = await browser.storage.local.get('pendingApprovals');
+    const { pendingApprovals } = await browserAPI.storage.local.get('pendingApprovals');
     
     if (!pendingApprovals || !pendingApprovals[requestId]) {
       throw new Error(`Approval request ${requestId} not found`);
     }
     
     // Store the result
-    const { approvalResults } = await browser.storage.local.get('approvalResults');
+    const { approvalResults } = await browserAPI.storage.local.get('approvalResults');
     const results = approvalResults || {};
     
     results[requestId] = { 
@@ -743,12 +746,12 @@ async function resolveApproval(requestId, approved) {
       timestamp: Date.now() 
     };
     
-    await browser.storage.local.set({ approvalResults: results });
+    await browserAPI.storage.local.set({ approvalResults: results });
     
     // Clean up the pending request
     const updatedApprovals = { ...pendingApprovals };
     delete updatedApprovals[requestId];
-    await browser.storage.local.set({ pendingApprovals: updatedApprovals });
+    await browserAPI.storage.local.set({ pendingApprovals: updatedApprovals });
     
     return true;
   } catch (error) {
@@ -856,12 +859,12 @@ function formatTypedDataForDisplay(typedData) {
 // Create a utility to emit events to all tabs
 async function emitEvent(eventName, data) {
   try {
-    const tabs = await browser.tabs.query({});
+    const tabs = await browserAPI.tabs.query({});
     // Convert any BigInt values to strings before sending
     const safeData = convertBigIntToString(data);
     
     for (const tab of tabs) {
-      browser.tabs.sendMessage(tab.id, {
+      browserAPI.tabs.sendMessage(tab.id, {
         event: eventName,
         data: safeData
       }).catch(() => {
@@ -882,24 +885,24 @@ async function removeNetwork(chainId) {
     }
     
     // Get current user chains
-    const { userChains } = await browser.storage.local.get('userChains');
+    const { userChains } = await browserAPI.storage.local.get('userChains');
     if (!userChains || !userChains[chainId]) {
       throw new Error(`Network with chain ID ${chainId} not found`);
     }
     
     // Get current chain
-    const { chainId: currentChainId } = await browser.storage.local.get('chainId');
+    const { chainId: currentChainId } = await browserAPI.storage.local.get('chainId');
     
     // Switch to default if removing the active chain
     if (currentChainId === chainId) {
-      await browser.storage.local.set({ chainId: DEFAULT_CHAIN_ID });
+      await browserAPI.storage.local.set({ chainId: DEFAULT_CHAIN_ID });
       await emitEvent('chainChanged', DEFAULT_CHAIN_ID);
     }
     
     // Remove the chain
     const updatedUserChains = { ...userChains };
     delete updatedUserChains[chainId];
-    await browser.storage.local.set({ userChains: updatedUserChains });
+    await browserAPI.storage.local.set({ userChains: updatedUserChains });
     
     return true;
   } catch (error) {

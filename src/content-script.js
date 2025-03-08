@@ -1,6 +1,9 @@
+// Use chrome as the default and fallback to browser for Firefox
+const browserAPI = globalThis.chrome || globalThis.browser;
+
 // Inject the script that will add window.ethereum
 const injectScript = document.createElement('script');
-injectScript.src = browser.runtime.getURL('injected.js');
+injectScript.src = browserAPI.runtime.getURL('injected.js');
 injectScript.onload = () => injectScript.remove();
 (document.head || document.documentElement).appendChild(injectScript);
 
@@ -12,7 +15,7 @@ window.addEventListener('message', async (event) => {
   // Forward ethereum requests from the page to background script
   if (event.data.type === 'FROM_PAGE') {
     try {
-      const response = await browser.runtime.sendMessage(event.data.message);
+      const response = await browserAPI.runtime.sendMessage(event.data.message);
       // Send the response back to the injected script
       window.postMessage({ 
         type: 'FROM_EXTENSION',
@@ -35,7 +38,7 @@ window.addEventListener('message', async (event) => {
 });
 
 // Listen for messages from the background script
-browser.runtime.onMessage.addListener((message, sender) => {
+browserAPI.runtime.onMessage.addListener((message, sender) => {
   // Make sure message is properly formatted for the injected script
   const formattedMessage = message;
   

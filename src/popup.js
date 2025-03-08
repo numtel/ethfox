@@ -1,3 +1,6 @@
+// Use chrome as the default and fallback to browser for Firefox
+const browserAPI = globalThis.chrome || globalThis.browser;
+
 // Wait for page to load
 document.addEventListener('DOMContentLoaded', async () => {
   // DOM Elements - Tabs
@@ -88,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
       
       // Save to storage
-      await browser.storage.local.set({ popupState: state });
+      await browserAPI.storage.local.set({ popupState: state });
       console.log('UI state saved:', state);
     } catch (error) {
       console.error('Error saving UI state:', error);
@@ -98,7 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Restore saved UI state
   const restoreState = async () => {
     try {
-      const { popupState } = await browser.storage.local.get('popupState');
+      const { popupState } = await browserAPI.storage.local.get('popupState');
       
       if (popupState) {
         console.log('Restoring UI state:', popupState);
@@ -187,7 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Send a message to the background script and wait for response
   const sendToBackground = (message) => {
     return new Promise((resolve, reject) => {
-      browser.runtime.sendMessage(message).then(response => {
+      browserAPI.runtime.sendMessage(message).then(response => {
         resolve(response);
       }).catch(error => {
         console.error('Runtime error:', error);
@@ -294,7 +297,7 @@ const getWallet = async () => {
   const populateNetworkSelect = async () => {
     try {
       // Get all chains from storage
-      const { userChains } = await browser.storage.local.get('userChains');
+      const { userChains } = await browserAPI.storage.local.get('userChains');
       
       // Clear existing options
       while (networkSelectEl.options.length > 0) {
@@ -388,7 +391,7 @@ const getWallet = async () => {
   // Get stored tokens
   const getStoredTokens = async () => {
     try {
-      const result = await browser.storage.local.get('tokens');
+      const result = await browserAPI.storage.local.get('tokens');
       tokens = result.tokens || [];
     } catch (error) {
       console.error('Error getting stored tokens:', error);
@@ -399,7 +402,7 @@ const getWallet = async () => {
   // Save tokens to storage
   const saveTokens = async () => {
     try {
-      await browser.storage.local.set({ tokens });
+      await browserAPI.storage.local.set({ tokens });
     } catch (error) {
       console.error('Error saving tokens:', error);
     }
@@ -777,7 +780,7 @@ const getWallet = async () => {
   // Export private key (this is for demo purposes)
   const exportPrivateKey = async () => {
     try {
-      const { privateKey } = await browser.storage.local.get('privateKey');
+      const { privateKey } = await browserAPI.storage.local.get('privateKey');
       
       if (privateKeyDisplayEl.style.display === 'none') {
         privateKeyDisplayEl.textContent = privateKey;
