@@ -137,7 +137,9 @@ async function handleRequest(method, params) {
     switch (method) {
       case 'eth_requestAccounts':
       case 'eth_accounts':
-        return [account.address];
+        // Always return just the address string for better cross-browser compatibility
+        // This way, both Firefox and Chrome will have a consistent result
+        return account.address;
 
       case 'eth_chainId':
         const chainId = await walletClient.getChainId();
@@ -590,8 +592,11 @@ async function handleRequest(method, params) {
           await setPrivateKey(key);
           // Return the new address
           const newAccount = await getOrCreateAccount();
+          
+          // Just return the address string for better Chrome compatibility
           return newAccount.address;
         } catch (error) {
+          console.error('Failed to import private key:', error);
           throw new Error(`Failed to import private key: ${error.message}`);
         }
         
@@ -602,11 +607,12 @@ async function handleRequest(method, params) {
           await setPrivateKey(newKey);
           // Return the new address
           const newAccount = await getOrCreateAccount();
-          return {
-            address: newAccount.address,
-            privateKey: newKey
-          };
+          
+          // In Chrome, complex return objects might not be properly serialized
+          // so we'll just return the address as a string to ensure compatibility
+          return newAccount.address;
         } catch (error) {
+          console.error('Failed to generate new key:', error);
           throw new Error(`Failed to generate new key: ${error.message}`);
         }
 

@@ -210,8 +210,26 @@ const getWallet = async () => {
       
       console.log('Got accounts:', accounts);
       
-      if (accounts && accounts.length > 0) {
-        currentAccount = accounts[0];
+      // Handle all possible response formats from Chrome and Firefox
+      let hasAccount = false;
+      
+      if (accounts) {
+        if (Array.isArray(accounts) && accounts.length > 0) {
+          // Standard array response (Firefox)
+          currentAccount = accounts[0];
+          hasAccount = true;
+        } else if (typeof accounts === 'string') {
+          // String response (Chrome)
+          currentAccount = accounts;
+          hasAccount = true;
+        } else if (typeof accounts === 'object' && accounts.address) {
+          // Object response with address property
+          currentAccount = accounts.address;
+          hasAccount = true;
+        }
+      }
+      
+      if (hasAccount) {
         walletStatusEl.textContent = 'Wallet connected';
         
         // Make the address element clickable
@@ -235,7 +253,47 @@ const getWallet = async () => {
         getTokenBalances();
         updateTokenSelect();
       } else {
-        walletStatusEl.textContent = 'No wallet account found';
+        // No account found, generate one automatically
+        walletStatusEl.textContent = 'Creating new wallet...';
+        
+        try {
+          console.log('Generating new key automatically...');
+          
+          // Request a new key from the wallet provider
+          const result = await sendToBackground({
+            method: 'wallet_generateNewKey',
+            params: []
+          });
+          
+          console.log('Generate key result:', result);
+          
+          // Handle both object response (Firefox) and string response (Chrome)
+          const newAddress = typeof result === 'object' && result.address ? result.address : result;
+          
+          // Update current account and UI
+          currentAccount = newAddress;
+          accountAddressEl.textContent = formatAddress(currentAccount);
+          walletStatusEl.textContent = 'Wallet connected';
+          accountAddressEl.style.cursor = 'pointer';
+          accountAddressEl.title = 'View on block explorer';
+          
+          // Get chain ID
+          currentChainId = await sendToBackground({
+            method: 'eth_chainId',
+            params: []
+          });
+          
+          displayChainInfo(currentChainId);
+          
+          // Get balances
+          getEthBalance();
+          await getStoredTokens();
+          getTokenBalances();
+          updateTokenSelect();
+        } catch (error) {
+          console.error('Error creating new wallet:', error);
+          walletStatusEl.textContent = 'Error creating wallet';
+        }
       }
     } catch (error) {
       console.error('Error initializing wallet:', error);
@@ -943,12 +1001,17 @@ const getWallet = async () => {
         params: []
       });
       
+      console.log('Generate key result:', result);
+      
+      // Handle both object response (Firefox) and string response (Chrome)
+      const newAddress = typeof result === 'object' && result.address ? result.address : result;
+      
       // Show success message with new address
-      generateKeyStatusEl.innerHTML = `Success! New address: <strong>${formatAddress(result.address)}</strong>`;
+      generateKeyStatusEl.innerHTML = `Success! New address: <strong>${formatAddress(newAddress)}</strong>`;
       generateKeyStatusEl.style.color = '#34a853';
       
       // Update current account and UI
-      currentAccount = result.address;
+      currentAccount = newAddress;
       accountAddressEl.textContent = formatAddress(currentAccount);
       walletStatusEl.textContent = 'Wallet connected';
       
@@ -984,10 +1047,15 @@ const getWallet = async () => {
       importKeyBtn.disabled = true;
       
       // Request to import the key
-      const newAddress = await sendToBackground({
+      const result = await sendToBackground({
         method: 'wallet_importPrivateKey',
         params: [privateKey]
       });
+      
+      console.log('Import key result:', result);
+      
+      // Handle both object response and string response
+      const newAddress = typeof result === 'object' && result.address ? result.address : result;
       
       // Show success message
       importKeyStatusEl.innerHTML = `Success! Imported address: <strong>${formatAddress(newAddress)}</strong>`;
